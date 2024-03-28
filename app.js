@@ -1,6 +1,7 @@
 const express = require('express');
 const nodemailer = require('nodemailer');
 const bodyParser = require('body-parser');
+const { body, validationResult } = require('express-validator');
 const cors = require('cors');
 
 const app = express();
@@ -15,8 +16,21 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Serve static files (if any)
 app.use(express.static('public'));
 
+// Validation middleware for the send-email route
+const validateSendEmail = [
+    body('senderName').notEmpty().withMessage('Sender name is required'),
+    body('senderEmail').isEmail().withMessage('Invalid sender email'),
+    body('message').notEmpty().withMessage('Message is required')
+];
+
 // POST route to handle sending emails
-app.post('/api/send-email', (req, res) => {
+app.post('/api/send-email', validateSendEmail, (req, res) => {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
     // Extract data from request body
     const { senderName, senderEmail, subject, message, recipientEmail } = req.body;
 
@@ -36,7 +50,7 @@ app.post('/api/send-email', (req, res) => {
     let mailOptions = {
         from: from,
         to: "markanthony.villudo@gmail.com",
-        subject: "Portfolio",
+        subject: subject,
         text: message
     };
 
@@ -53,6 +67,7 @@ app.post('/api/send-email', (req, res) => {
 });
 
 // Start the server
-app.listen(3000, () => {
-    console.log('Server is running on port 3000');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
